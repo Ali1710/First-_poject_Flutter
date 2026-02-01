@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/features/crypto_list/bloc/crypto_list_bloc.dart';
-import 'package:flutter_application_1/features/crypto_list/widgets/Crypto_Coin_Tile.dart';
+import 'package:flutter_application_1/features/crypto_list/widgets/crypto_coin_tile.dart';
 import 'package:flutter_application_1/repositories/crypto_coin/abstract_coin_repository.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class CryptoListScreen extends StatefulWidget {
   const CryptoListScreen({super.key, required this.title});
@@ -16,86 +17,113 @@ class CryptoListScreen extends StatefulWidget {
 }
 
 class _CryptoListScreenState extends State<CryptoListScreen> {
-  final _cryptoListBloc = CryptoListBloc(
-    GetIt.I<AbstractCoinsRepository>(),
-  );
+  late final CryptoListBloc _bloc;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
-    _cryptoListBloc.add(LoadCryptoList());
     super.initState();
+    _bloc = CryptoListBloc(GetIt.I<AbstractCoinsRepository>());
+    _bloc.add(LoadCryptoList());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _bloc.close();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final completer = Completer();
+    _bloc.add(LoadCryptoList(completer: completer));
+    await completer.future;
   }
 
   @override
   Widget build(BuildContext context) {
-    final _ = Theme.of(context);
     return Scaffold(
+      backgroundColor: const Color(0xFF121212), // фон отдельно, ничего “фонового” не рисуем
       appBar: AppBar(
-            title: Text("Crypto"),
+        title: const Text('Crypto'),
+        actions: [
+          IconButton( 
+            onPressed: (){
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => TalkerScreen(talker: GetIt.I<Talker>()),
+              ));  
+            },
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+        centerTitle: true,
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          final completer = Completer();
-          _cryptoListBloc.add(LoadCryptoList(completer: completer));
-          return completer.future;
-        },
+        onRefresh: _refresh,
         child: BlocBuilder<CryptoListBloc, CryptoListState>(
-          bloc: _cryptoListBloc,
+          bloc: _bloc,
           builder: (context, state) {
+            // 1) УСПЕХ
             if (state is CryptoListLoaded) {
-               return ListView.separated(
-                padding: const EdgeInsets.only(top: 16),
+              return ListView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(top: 8, bottom: 12),
                 itemCount: state.coinsList.length,
-                separatorBuilder: (context, index) => const Divider(),
-                itemBuilder: (context, i) {
-                  final coin = state.coinsList[i];
-                  return Cryptocointile(coin: coin);
-                  },
-                );
-            }
-            if (state is CryptoListLoadingFailure) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: Colors.redAccent,
-                        size: 60,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Failed to load crypto list',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.redAccent,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Please check your internet connection or tap the button below to retry.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                        textAlign: TextAlign.center,
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          _cryptoListBloc.add(LoadCryptoList());
-                        },
-                        child: const Text('Try Again'),
-                      ),
-                    ],
-                  ),
-                ),
+                itemBuilder: (context, i) => CryptoCoinTile(coin: state.coinsList[i]),
               );
             }
-            return const Center(child: CircularProgressIndicator(color: Colors.yellow,));
+
+            // 2) ОШИБКА
+            if (state is CryptoListLoadingFailure) {
+              return ListView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(top: 8, bottom: 12),
+                children: [
+                  const SizedBox(height: 80),
+                  const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+                  const SizedBox(height: 12),
+                  const Center(
+                    child: Text(
+                      'Failed to load crypto list',
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Please check your internet connection or tap below to retry.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.white54),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  RetryTile(onTap: () => _bloc.add(LoadCryptoList())),
+                ],
+              );
+            }
+
+            // 3) ЗАГРУЗКА (ВАЖНО!)
+            // Тут НЕ Center() — чтобы не было “слоёв/фона”.
+            // Мы рисуем обычный скроллимый список, и внутри индикатор как элемент.
+            return ListView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(top: 8, bottom: 12),
+              children: const [
+                SizedBox(height: 120),
+                Center(child: CircularProgressIndicator()),
+              ],
+            );
           },
         ),
-      )
+      ),
     );
   }
 }

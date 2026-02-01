@@ -501,6 +501,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.13"
+  talker_bloc_logger:
+    dependency: "direct main"
+    description:
+      name: talker_bloc_logger
+      sha256: d69cfaf3b7294babc1f2b0e297fb33b885cc859a4ceae5393bd39da9eb93e537
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.1.13"
+  talker_dio_logger:
+    dependency: "direct main"
+    description:
+      name: talker_dio_logger
+      sha256: c5769f4b1ee6fcc1a0670cdfc7f3253016a1090b583aeb70e3ccd73f479970a8
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.1.13"
   talker_flutter:
     dependency: "direct main"
     description:
