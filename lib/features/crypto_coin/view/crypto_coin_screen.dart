@@ -1,4 +1,10 @@
+import 'package:flutter_application_1/features/crypto_coin/bloc/crypto_coin_details/crypto_coin_details_bloc.dart';
+import 'package:flutter_application_1/features/crypto_coin/widgets/widgets.dart';
+import 'package:flutter_application_1/repositories/crypto_coin/abstract_coin_repository.dart';
+import 'package:flutter_application_1/repositories/crypto_coin/models/crypto_coin.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 class CryptoCoinScreen extends StatefulWidget {
   const CryptoCoinScreen({super.key});
@@ -8,36 +14,106 @@ class CryptoCoinScreen extends StatefulWidget {
 }
 
 class _CryptoCoinScreenState extends State<CryptoCoinScreen> {
-  String? coinName;
+  CryptoCoin? coin;
+
+  final _coinDetailsBloc = CryptoCoinDetailsBloc(
+    GetIt.I<AbstractCoinsRepository>(),
+  );
+
   @override
   void didChangeDependencies() {
     final args = ModalRoute.of(context)?.settings.arguments;
-    assert(args != null && args is String,
-        'You must provide a non-null String argument to CryptoCoinScreen');
-    // ignore: dead_code
-    coinName = args as String;
-    setState(() {
-    });
+    assert(args != null && args is CryptoCoin, 'You must provide String args');
+    coin = args as CryptoCoin;
+    _coinDetailsBloc.add(LoadCryptoCoinDetails(currencyCode: coin!.name));
     super.didChangeDependencies();
   }
 
   @override
   Widget build(BuildContext context) {
-    final Object? args = ModalRoute.of(context)?.settings.arguments;
-    final String? coinId = args is String
-        ? args
-        : (args is Map && args['id'] is String ? args['id'] as String : null);
-
-    if (coinId == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Coin')),
-        body: const Center(child: Text('No coin id provided')),
-      );
-    }
-
     return Scaffold(
-      appBar: AppBar(title: Text(coinName ?? '...')),
-      body: Container(), // Placeholder for the existing UI using coinId
+      appBar: AppBar(),
+      body: BlocBuilder<CryptoCoinDetailsBloc, CryptoCoinDetailsState>(
+        bloc: _coinDetailsBloc,
+        builder: (context, state) {
+          if (state is CryptoCoinDetailsLoaded) {
+            final coinDetails = state.coinDetails;
+            return Center(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 160,
+                    width: 160,
+                    child: Image.network(coinDetails.imageUrl),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    coinDetails.name,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  BaseCard(
+                    child: Center(
+                      child: Text(
+                        '${coinDetails.priceInUSD} \$',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  BaseCard(
+                    child: Column(
+                      children: [
+                        _DataRow(
+                          title: 'Hight 24 Hour',
+                          value: '${coinDetails.hight24Hour} \$',
+                        ),
+                        const SizedBox(height: 6),
+                        _DataRow(
+                          title: 'Low 24 Hour',
+                          value: '${coinDetails.low24Hours} \$',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
+      ),
+    );
+  }
+}
+
+class _DataRow extends StatelessWidget {
+  const _DataRow({
+    required this.title,
+    required this.value,
+  });
+
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 140, child: Text(title)),
+        const SizedBox(width: 32),
+        Flexible(
+          child: Text(value),
+        ),
+      ],
     );
   }
 }
