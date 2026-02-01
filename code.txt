@@ -1,0 +1,5 @@
+D:\Android\Sdk\emulator\emulator.exe -avd Pixel_8a -gpu swiftshader_indirect -no-snapshot -netdelay none -netspeed full
+
+
+
+flutter run -d emulator-5554
