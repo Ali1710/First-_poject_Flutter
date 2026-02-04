@@ -1,5 +1,5 @@
 import 'package:flutter_application_1/repositories/crypto_coin/abstract_coin_repository.dart';
-import 'package:flutter_application_1/repositories/crypto_coin/models/crypto_coin_details.dart';
+import 'package:flutter_application_1/repositories/crypto_coin/models/crypto_coin.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get_it/get_it.dart';

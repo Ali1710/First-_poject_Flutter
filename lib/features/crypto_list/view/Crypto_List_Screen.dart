@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/features/crypto_list/bloc/crypto_list_bloc.dart';
 import 'package:flutter_application_1/features/crypto_list/widgets/crypto_coin_tile.dart';
@@ -8,17 +8,17 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+@RoutePage()
 class CryptoListScreen extends StatefulWidget {
-  const CryptoListScreen({super.key, required this.title});
-  final String title;
-
+  const CryptoListScreen({super.key});
+  
   @override
   State<CryptoListScreen> createState() => _CryptoListScreenState();
 }
 
 class _CryptoListScreenState extends State<CryptoListScreen> {
   late final CryptoListBloc _bloc;
-  final ScrollController _scrollController = ScrollController();
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -43,23 +43,29 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // фон отдельно, ничего “фонового” не рисуем
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: const Text('Crypto'),
         actions: [
           IconButton( 
-            onPressed: (){
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => TalkerScreen(talker: GetIt.I<Talker>()),
-              ));  
+            onPressed: () {
+              // ПРАВИЛЬНЫЙ ВАРИАНТ: 
+              // Для внешних экранов, которых нет в AppRouter, используем Navigator.
+              // Если добавишь TalkerScreen в AppRouter, тогда вызывай context.pushRoute(const TalkerRoute())
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => TalkerScreen(talker: GetIt.I<Talker>()),
+                ),
+              );
             },
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.document_scanner_outlined),
           ),
         ],
         centerTitle: true,
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
+        color: Colors.yellowAccent,
         child: BlocBuilder<CryptoListBloc, CryptoListState>(
           bloc: _bloc,
           builder: (context, state) {
@@ -79,7 +85,6 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
               return ListView(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(top: 8, bottom: 12),
                 children: [
                   const SizedBox(height: 80),
                   const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
@@ -95,8 +100,8 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
                       'Please check your internet connection or tap below to retry.',
                       textAlign: TextAlign.center,
@@ -104,21 +109,24 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  RetryTile(onTap: () => _bloc.add(LoadCryptoList())),
+                  Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.yellowAccent),
+                      onPressed: () => _bloc.add(LoadCryptoList()), 
+                      child: const Text('Retry', style: TextStyle(color: Colors.black)),
+                    ),
+                  ),
                 ],
               );
             }
 
-            // 3) ЗАГРУЗКА (ВАЖНО!)
-            // Тут НЕ Center() — чтобы не было “слоёв/фона”.
-            // Мы рисуем обычный скроллимый список, и внутри индикатор как элемент.
+            // 3) ЗАГРУЗКА
             return ListView(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(top: 8, bottom: 12),
               children: const [
                 SizedBox(height: 120),
-                Center(child: CircularProgressIndicator()),
+                Center(child: CircularProgressIndicator(color: Colors.yellowAccent)),
               ],
             );
           },

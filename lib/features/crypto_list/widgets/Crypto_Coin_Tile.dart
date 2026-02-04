@@ -1,5 +1,7 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/repositories/crypto_coin/models/crypto_coin.dart';
+import 'package:flutter_application_1/router/router.dart';
 
 class CryptoCoinTile extends StatelessWidget {
   const CryptoCoinTile({super.key, required this.coin});
@@ -8,21 +10,35 @@ class CryptoCoinTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final details = coin.details; // если у тебя details non-null, ок
+
+    // если details не заполнен, используем простые поля
+    final imageUrl = (details.imageUrl.isNotEmpty)
+        ? details.fullImageUrl
+        : '';
+
+    final price = details.priceInUSD;
+
     return CryptoCardTile(
-      leading: Image.network(
-        coin.imageUrl,
-        width: 36,
-        height: 36,
-        errorBuilder: (_, __, ___) =>
-            const Icon(Icons.currency_bitcoin, color: Colors.white70),
-      ),
+      leading: imageUrl.isEmpty
+          ? const Icon(Icons.currency_bitcoin, color: Colors.white70)
+          : Image.network(
+              imageUrl,
+              width: 36,
+              height: 36,
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.currency_bitcoin, color: Colors.white70),
+            ),
       title: coin.name,
-      subtitle: '${coin.priceInUSD}\$',
-      onTap: () => Navigator.of(context).pushNamed('/coin', arguments: coin),
+      subtitle: '$price\$',
+      onTap: () {
+        AutoRouter.of(context).push(
+          CryptoCoinRoute(coin: coin),
+        );
+      }
     );
   }
 }
-
 class RetryTile extends StatelessWidget {
   const RetryTile({super.key, required this.onTap});
 
@@ -39,8 +55,6 @@ class RetryTile extends StatelessWidget {
   }
 }
 
-/// ОДИН универсальный “бокс”
-/// Он и есть “коробка”. Она ВНУТРИ списка => будет двигаться вместе со списком.
 class CryptoCardTile extends StatelessWidget {
   const CryptoCardTile({
     super.key,
